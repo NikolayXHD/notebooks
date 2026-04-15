@@ -30,10 +30,7 @@ RUN wget https://github.com/jesseduffield/lazygit/releases/download/v0.54.2/lazy
     tar xvf lazygit_0.54.2_linux_x86_64.tar.gz -C /usr/local/bin --wildcards lazygit && \
     rm lazygit_0.54.2_linux_x86_64.tar.gz
 
-# NOTE: the contents of $HOME_TMP are copied to $HOME at runtime
-#       this is a workaround because a PVC will be mounted at $HOME
-#       and the contents of $HOME will be hidden
-RUN cp -p -r -T ${HOME} ${HOME_TMP} \
-    && chown -R ${NB_USER}:${USERS_GID} ${HOME_TMP}
+# s6 - copy scripts
+COPY --chown=${NB_USER}:${NB_GID} --chmod=755 s6/ /etc
 
 USER $NB_USER
