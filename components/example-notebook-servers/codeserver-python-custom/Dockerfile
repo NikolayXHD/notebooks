@@ -33,4 +33,6 @@ RUN wget https://github.com/jesseduffield/lazygit/releases/download/v0.54.2/lazy
 # s6 - copy scripts
 COPY --chown=${NB_USER}:${NB_GID} --chmod=755 s6/ /etc
 
+RUN awk -v nb_user="$NB_USER" '{print} $0=="auth       sufficient pam_rootok.so"{print "auth       sufficient pam_succeed_if.so use_uid user = " nb_user}' /etc/pam.d/su
+
 USER $NB_USER
