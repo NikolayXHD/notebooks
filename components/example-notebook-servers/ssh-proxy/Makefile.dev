@@ -1,0 +1,15 @@
+# Development/testing targets for ssh-proxy
+
+.PHONY: test-venv test clean
+
+TEST_VENV := venv
+
+test-venv:
+	python3.11 -m venv $(TEST_VENV) && \
+	$(TEST_VENV)/bin/pip install --quiet pytest websockets testcontainers httpx requests paramiko
+
+test: test-venv
+	$(TEST_VENV)/bin/pytest tests/ -v
+
+clean:
+	rm -rf $(TEST_VENV)

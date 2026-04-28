@@ -33,6 +33,12 @@ Sessionx.vim
 *.elc
 .\#*
 
+__pycache__/
+
+## Python virtual environments
+venv/
+.env/
+
 ## macOS
 .DS_Store
 .AppleDouble

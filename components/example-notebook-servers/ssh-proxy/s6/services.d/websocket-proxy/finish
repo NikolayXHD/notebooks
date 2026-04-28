@@ -1,0 +1,2 @@
+#!/command/with-contenv bash
+echo "INFO: websocket-ssh-proxy stopping..."

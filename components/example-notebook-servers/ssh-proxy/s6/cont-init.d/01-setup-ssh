@@ -1,0 +1,20 @@
+#!/command/with-contenv bash
+# Create privilege separation directory for sshd
+mkdir -p /run/sshd
+chmod 755 /run/sshd
+
+# Unlock jovyan account for empty password authentication
+# The base Kubeflow image has a locked account (! in /etc/shadow)
+passwd -d jovyan 2>/dev/null || true
+
+# Create SSH config for the jovyan user
+mkdir -p "${HOME}/.ssh"
+chmod 700 "${HOME}/.ssh"
+
+cat > "${HOME}/.ssh/config" << 'EOF'
+PasswordAuthentication yes
+PubkeyAuthentication no
+KbdInteractiveAuthentication no
+ChallengeResponseAuthentication no
+EOF
+chmod 600 "${HOME}/.ssh/config"

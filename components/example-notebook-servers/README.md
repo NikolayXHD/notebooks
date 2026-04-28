@@ -14,6 +14,8 @@ graph TD
   Base[<a href='https://github.com/kubeflow/kubeflow/tree/master/components/example-notebook-servers/base'>Base</a>] --> Jupyter[<a href='https://github.com/kubeflow/kubeflow/tree/master/components/example-notebook-servers/jupyter'>Jupyter</a>]
   Base --> Code-Server[<a href='https://github.com/kubeflow/kubeflow/tree/master/components/example-notebook-servers/codeserver'>code-server</a>]
   Base --> RStudio[<a href='https://github.com/kubeflow/kubeflow/tree/master/components/example-notebook-servers/rstudio'>RStudio</a>]
+  Base --> SSH-Proxy[<a href='https://github.com/kubeflow/kubeflow/tree/master/components/example-notebook-servers/ssh-proxy'>SSH Proxy</a>]
+  Base --> MCP-Shell[<a href='https://github.com/kubeflow/kubeflow/tree/master/components/example-notebook-servers/mcp-shell-server'>MCP Shell</a>]
 
   Jupyter --> PyTorch[<a href='https://github.com/kubeflow/kubeflow/tree/master/components/example-notebook-servers/jupyter-pytorch'>PyTorch</a>]
   Jupyter --> SciPy[<a href='https://github.com/kubeflow/kubeflow/tree/master/components/example-notebook-servers/jupyter-scipy'>SciPy</a>]
@@ -54,7 +56,9 @@ These images extend the [base images](#images--base) with common packages used i
 Dockerfile | Container Registry | Notes
 --- | --- | ---
 [`./codeserver-python`](./codeserver-python) | [`ghcr.io/kubeflow/kubeflow/notebook-servers/codeserver-python`](https://ghcr.io/kubeflow/kubeflow/notebook-servers/codeserver-python) | code-server + Conda Python
+[`./mcp-shell-server`](./mcp-shell-server) | [`ghcr.io/kubeflow/kubeflow/notebook-servers/mcp-shell-server`](https://ghcr.io/kubeflow/kubeflow/notebook-servers/mcp-shell-server) | MCP-compatible shell command server
 [`./rstudio-tidyverse`](./rstudio-tidyverse) | [`ghcr.io/kubeflow/kubeflow/notebook-servers/rstudio-tidyverse`](https://ghcr.io/kubeflow/kubeflow/notebook-servers/rstudio-tidyverse) | RStudio + [Tidyverse](https://www.tidyverse.org/)
+[`./ssh-proxy`](./ssh-proxy) | [`ghcr.io/kubeflow/kubeflow/notebook-servers/ssh-proxy`](https://ghcr.io/kubeflow/kubeflow/notebook-servers/ssh-proxy) | WebSocket ↔ SSH proxy for Kubeflow GPU pods
 [`./jupyter-pytorch`](./jupyter-pytorch) | [`ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-pytorch`](https://ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-pytorch) | JupyterLab + PyTorch
 [`./jupyter-pytorch-full`](./jupyter-pytorch-full) | [`ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-pytorch-full`](https://ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-pytorch-full) | JupyterLab + PyTorch + Common Packages
 [`./jupyter-pytorch-cuda`](./jupyter-pytorch-cuda) | [`ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-pytorch-cuda`](https://ghcr.io/kubeflow/kubeflow/notebook-servers/jupyter-pytorch-cuda) | JupyterLab + PyTorch + CUDA
