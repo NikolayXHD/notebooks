@@ -166,3 +166,19 @@ def test_pip_index_configured(container):
 def test_openssh_client_installed(container):
     exit_code, output = container.exec("ssh -V")
     assert exit_code == 0
+
+
+def test_su_without_password(container):
+    exit_code, output = container.exec(
+        ["sh", "-c", "echo 'whoami before su'; whoami; echo 'su to root'; echo | su - -c whoami"]
+    )
+    assert exit_code == 0
+    assert b"root" in output, f"Expected 'root' in output, got: {output}"
+
+
+def test_sudo_without_password(container):
+    exit_code, output = container.exec(
+        ["sh", "-c", "echo 'whoami before sudo'; whoami; echo 'sudo whoami'; sudo whoami"]
+    )
+    assert exit_code == 0
+    assert b"root" in output, f"Expected 'root' in output, got: {output}"
