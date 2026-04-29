@@ -78,6 +78,12 @@ def test_multiple_connections(client):
     assert len(results) == 3
 
 
+def test_python_version(container):
+    exit_code, output = container.exec("python3.11 --version")
+    assert exit_code == 0
+    assert b"3.11" in output
+
+
 def test_connection_closes_gracefully(client):
     """WebSocket closes cleanly after communication."""
     url, headers = _make_ws_url(client.base_url, client.cookies)

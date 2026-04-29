@@ -82,6 +82,12 @@ def test_connection_closes_gracefully(client):
     assert result
 
 
+def test_python_version(container):
+    exit_code, output = container.exec("python3.11 --version")
+    assert exit_code == 0
+    assert b"3.11" in output
+
+
 def test_fish_installed(container):
     exit_code, output = container.exec("fish --version")
     assert exit_code == 0
@@ -126,6 +132,29 @@ def test_htop_installed(container):
 def test_poetry_installed(container):
     exit_code, output = container.exec("poetry --version")
     assert exit_code == 0
+
+
+def test_poetry_venv_creation(container):
+    exit_code, output = container.exec(
+        ["sh", "-c",
+         "cd /tmp && rm -rf test-pkg && mkdir test-pkg && cd test-pkg && cat > pyproject.toml << 'EOF' && poetry lock && poetry run python --version\n"
+         "[tool.poetry]\n"
+         "name = \"test-pkg\"\n"
+         "version = \"0.1.0\"\n"
+         "description = \"\"\n"
+         "authors = []\n"
+         "\n"
+         "[tool.poetry.dependencies]\n"
+         "python = \"^3.11\"\n"
+         "\n"
+         "[build-system]\n"
+         "requires = [\"poetry-core\"]\n"
+         "build-backend = \"poetry.core.masonry.api\"\n"
+         "EOF"
+        ]
+    )
+    assert exit_code == 0, f"poetry failed: {output}"
+    assert b"3.11" in output
 
 
 def test_pip_index_configured(container):

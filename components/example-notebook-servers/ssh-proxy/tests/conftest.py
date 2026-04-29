@@ -1,4 +1,5 @@
 import os
+import subprocess
 import time
 from pathlib import Path
 
@@ -9,29 +10,24 @@ from testcontainers.core.container import DockerContainer
 
 TESTS_DIR = Path(__file__).parent.resolve()
 PROJECT_DIR = TESTS_DIR.parent
-IMAGE_NAME = "ssh-proxy:test"
+IMAGE_NAME = "local/ssh-proxy:test"
 CONTAINER_NAME = "ssh-proxy-test-pytest"
 AUTH_COOKIE = "test-session-token"
 
 
 def _build_image():
-    dockerfile = PROJECT_DIR / "Dockerfile"
-    cmd = [
-        "docker", "build",
-        "-f", str(dockerfile),
-        "--build-arg",
-        f"BASE_IMG=ghcr.io/kubeflow/kubeflow/notebook-servers/base:sha-28140b7620a1b0f5e46c4c7dbddcda12148099dc-dirty",
-        "--tag", str(IMAGE_NAME),
-        str(PROJECT_DIR),
-    ]
-    result = os.system(" ".join(cmd))
-    if result != 0:
-        raise RuntimeError(f"Failed to build image (exit code {result})")
-
-
-def _image_exists():
-    result = os.popen(f"docker image inspect {IMAGE_NAME} 2>/dev/null").read().strip()
-    return bool(result)
+    env = {**os.environ, "REGISTRY": "local", "TAG": "test"}
+    result = subprocess.run(
+        ["make", "docker-build-dep"],
+        cwd=PROJECT_DIR,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        print(result.stdout)
+        print(result.stderr)
+        raise RuntimeError(f"Failed to build image (exit code {result.returncode})")
 
 
 def _container_running():
@@ -61,8 +57,7 @@ def _get_container_url(container):
 
 @pytest.fixture(scope="session")
 def image():
-    if not _image_exists():
-        _build_image()
+    _build_image()
     yield IMAGE_NAME
 
 
@@ -110,3 +105,8 @@ def client(container_info):
 @pytest.fixture()
 def unauthenticated_client(container_info):
     return httpx.Client(base_url=container_info.base_url, timeout=15)
+
+
+@pytest.fixture(scope="session")
+def container(container_info):
+    return container_info.container

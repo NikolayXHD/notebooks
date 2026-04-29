@@ -29,3 +29,6 @@ CACHE_TAG   ?= $(IMAGE_NAME)
 ARCH ?= linux/amd64
 
 include ../common.mk
+
+# include development targets
+include Makefile.dev

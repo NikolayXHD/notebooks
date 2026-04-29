@@ -18,7 +18,7 @@ USER root
 COPY common.sh .
 RUN chmod +x common.sh && ./common.sh && rm common.sh
 
-RUN apt -y install fish micro && apt clean
+RUN apt -y update && apt -y install fish micro python-is-python3 && apt clean
 
 RUN wget https://github.com/bootandy/dust/releases/download/v1.2.3/du-dust_1.2.3-1_amd64.deb && \
     dpkg -i du-dust_1.2.3-1_amd64.deb && \

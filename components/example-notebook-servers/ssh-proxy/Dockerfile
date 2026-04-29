@@ -9,20 +9,23 @@ ARG TARGETARCH
 
 USER root
 
-# install - openssh-server, generate host keys, create venv
+# install - deadsnakes PPA for latest Python 3.11, openssh-server, generate host keys, create venv
 RUN export DEBIAN_FRONTEND=noninteractive \
+ && echo 'deb [trusted=yes] http://ppa.launchpad.net/deadsnakes/ppa/ubuntu jammy main' > /etc/apt/sources.list.d/deadsnakes.list \
  && apt-get -yq update \
  && apt-get -yq install --no-install-recommends \
     openssh-server \
     openssh-client \
-    python3-venv \
+    python3.11 \
+    python3.11-venv \
+    python3-pip \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/* \
  && mkdir -p /etc/ssh/sshd_config.d \
  && rm -f /etc/ssh/ssh_host_* \
  && ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key -N '' -b 4096 \
  && ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key -N '' \
- && python3 -m venv /opt/ssh-proxy-venv \
+ && python3.11 -m venv /opt/ssh-proxy-venv \
  && /opt/ssh-proxy-venv/bin/pip install --no-cache-dir websockets
 
 # sshd config

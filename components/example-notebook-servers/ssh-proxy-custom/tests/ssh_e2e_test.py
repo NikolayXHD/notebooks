@@ -19,53 +19,26 @@ import time
 
 PROJECT_DIR = pathlib.Path(__file__).parent.parent.resolve()
 SSH_PROXY_DIR = PROJECT_DIR.parent / "ssh-proxy"
-IMAGE_NAME = "ssh-proxy-custom:test"
-SSH_PROXY_IMAGE = "ssh-proxy:test-base"
+IMAGE_NAME = "local/ssh-proxy-custom:test"
 CONTAINER_NAME = "ssh-proxy-custom-test-e2e"
 AUTH_COOKIE = "test-session-token"
 CLIENT_SCRIPT = SSH_PROXY_DIR / "ssh-proxy-client.py"
 
 
-def _build_ssh_proxy_base():
-    dockerfile = SSH_PROXY_DIR / "Dockerfile"
-    base_img = os.environ.get(
-        "TEST_BASE_IMAGE",
-        "ghcr.io/kubeflow/kubeflow/notebook-servers/base:sha-28140b7620a1b0f5e46c4c7dbddcda12148099dc-dirty",
-    )
-    cmd = [
-        "docker", "build",
-        "-f", str(dockerfile),
-        "--build-arg", f"BASE_IMG={base_img}",
-        "--tag", str(SSH_PROXY_IMAGE),
-        str(SSH_PROXY_DIR),
-    ]
-    print(f"  Building ssh-proxy base image...")
-    result = os.system(" ".join(cmd))
-    if result != 0:
-        raise RuntimeError(f"Failed to build ssh-proxy base image (exit code {result})")
-
-
 def _build_image():
-    if not _image_exists(SSH_PROXY_IMAGE):
-        _build_ssh_proxy_base()
-
-    dockerfile = PROJECT_DIR / "Dockerfile"
-    cmd = [
-        "docker", "build",
-        "-f", str(dockerfile),
-        "--build-arg", f"BASE_IMG={SSH_PROXY_IMAGE}",
-        "--tag", str(IMAGE_NAME),
-        str(PROJECT_DIR),
-    ]
-    print(f"  Building ssh-proxy-custom image...")
-    result = os.system(" ".join(cmd))
-    if result != 0:
-        raise RuntimeError(f"Failed to build image (exit code {result})")
-
-
-def _image_exists(name):
-    result = os.popen(f"docker image inspect {name} 2>/dev/null").read().strip()
-    return bool(result)
+    print(f"  Building image with make...")
+    env = {**os.environ, "REGISTRY": "local", "TAG": "test"}
+    result = subprocess.run(
+        ["make", "docker-build-dep"],
+        cwd=PROJECT_DIR,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        print(result.stdout)
+        print(result.stderr)
+        raise RuntimeError(f"Failed to build image (exit code {result.returncode})")
 
 
 def _container_running():

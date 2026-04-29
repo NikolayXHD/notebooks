@@ -18,29 +18,26 @@ import time
 
 
 PROJECT_DIR = pathlib.Path(__file__).parent.parent.resolve()
-IMAGE_NAME = "ssh-proxy:test"
+IMAGE_NAME = "local/ssh-proxy:test"
 CONTAINER_NAME = "ssh-proxy-test-e2e"
 AUTH_COOKIE = "test-session-token"
 CLIENT_SCRIPT = PROJECT_DIR / "ssh-proxy-client.py"
 
 
 def _build_image():
-    dockerfile = PROJECT_DIR / "Dockerfile"
-    base_img = os.environ.get(
-        "TEST_BASE_IMAGE",
-        "ghcr.io/kubeflow/kubeflow/notebook-servers/base:sha-28140b7620a1b0f5e46c4c7dbddcda12148099dc-dirty",
+    print(f"  Building image with make...")
+    env = {**os.environ, "REGISTRY": "local", "TAG": "test"}
+    result = subprocess.run(
+        ["make", "docker-build-dep"],
+        cwd=PROJECT_DIR,
+        env=env,
+        capture_output=True,
+        text=True,
     )
-    cmd = [
-        "docker", "build",
-        "-f", str(dockerfile),
-        "--build-arg", f"BASE_IMG={base_img}",
-        "--tag", str(IMAGE_NAME),
-        str(PROJECT_DIR),
-    ]
-    print(f"  Building image...")
-    result = os.system(" ".join(cmd))
-    if result != 0:
-        raise RuntimeError(f"Failed to build image (exit code {result})")
+    if result.returncode != 0:
+        print(result.stdout)
+        print(result.stderr)
+        raise RuntimeError(f"Failed to build image (exit code {result.returncode})")
 
 
 def _container_running():
@@ -73,12 +70,6 @@ def _start_container(base_image=None):
         os.system(f"docker stop {CONTAINER_NAME} >/dev/null 2>&1")
         os.system(f"docker rm {CONTAINER_NAME} >/dev/null 2>&1")
 
-    base_img = base_image or os.environ.get(
-        "TEST_BASE_IMAGE",
-        "ghcr.io/kubeflow/kubeflow/notebook-servers/base:sha-28140b7620a1b0f5e46c4c7dbddcda12148099dc-dirty",
-    )
-
-    import subprocess
     result = subprocess.run(
         [
             "docker", "run", "-d",
