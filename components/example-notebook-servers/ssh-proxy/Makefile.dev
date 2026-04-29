@@ -46,6 +46,7 @@ setup:
 	@echo "       ProxyCommand $(SETUP_DIR)/run %n"
 	@echo "       StrictHostKeyChecking no"
 	@echo "       UserKnownHostsFile /dev/null"
+	@echo "       LogLevel ERROR"
 	@echo ""
 	@echo "3. Connect:"
 	@echo "     ssh kubeflow.my-server       # my-server — имя блокнота из config"

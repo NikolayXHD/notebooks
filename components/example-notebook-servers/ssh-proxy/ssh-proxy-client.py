@@ -136,6 +136,7 @@ async def main():
         loop.add_signal_handler(sig, stop.set)
 
     parser = argparse.ArgumentParser(description="SSH WebSocket proxy client")
+    parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output")
     parser.add_argument("-n", "--notebook-name", help="Notebook name (overrides default_name in config)")
     parser.add_argument("args", nargs="*", help=argparse.SUPPRESS)
     parsed = parser.parse_args()
@@ -159,9 +160,11 @@ async def main():
     extra_headers = None
     if cookie:
         extra_headers = {"Cookie": f"authservice_session={cookie}"}
-        print(f"[ssh-proxy] Connecting to {url}", file=sys.stderr, flush=True)
+        if parsed.verbose:
+            print(f"[ssh-proxy] Connecting to {url}", file=sys.stderr, flush=True)
     else:
-        print(f"[ssh-proxy] Connecting to {url} (no auth cookie)", file=sys.stderr, flush=True)
+        if parsed.verbose:
+            print(f"[ssh-proxy] Connecting to {url} (no auth cookie)", file=sys.stderr, flush=True)
 
     try:
         async with websockets.connect(
@@ -171,7 +174,8 @@ async def main():
             ping_timeout=20,
             max_size=2 ** 20,
         ) as ws:
-            print("[ssh-proxy] WebSocket connected, starting proxy", file=sys.stderr, flush=True)
+            if parsed.verbose:
+                print("[ssh-proxy] WebSocket connected, starting proxy", file=sys.stderr, flush=True)
 
             stdin_task = asyncio.create_task(
                 stdin_to_ws(ws, force_exit=os.environ.get("SSH_PROXY_FORCE_EXIT") == "1")
