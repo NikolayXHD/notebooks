@@ -3,10 +3,11 @@
 SSH client proxy for Kubeflow GPU pods.
 
 Used as a ProxyCommand for SSH:
-    uv run ssh-proxy-client.py %h %p
+    Host kubeflow.*
+        User jovyan
+        ProxyCommand ~/.kubeflow-proxy/run %n
 
-Reads KUBEFLOW_NOTEBOOK_URL and KUBEFLOW_SESSION_COOKIE from environment.
-Forwards stdin ↔ WebSocket ↔ stdout in binary mode.
+Reads config from config.yaml next to the script.
 """
 
 import argparse
@@ -17,103 +18,78 @@ import sys
 
 import websockets
 
-_NOTEBOOK_URL = os.environ.get("KUBEFLOW_NOTEBOOK_URL", "")
-_COOKIE_SOURCE = os.environ.get("KUBEFLOW_SESSION_COOKIE", "")
+
+def _find_config():
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(script_dir, "config.yaml")
+    if os.path.isfile(path):
+        return path
+    return None
 
 
-def _parse_args():
-    parser = argparse.ArgumentParser(description="SSH WebSocket proxy client")
-    parser.add_argument("-u", "--url", help="WebSocket URL (overrides KUBEFLOW_NOTEBOOK_URL)")
-    parser.add_argument("-c", "--cookie", help="Auth cookie value (overrides KUBEFLOW_SESSION_COOKIE)")
-    parser.add_argument("host", nargs="?", help="SSH host (ignored, for ProxyCommand compatibility)")
-    parser.add_argument("port", nargs="?", help="SSH port (ignored, for ProxyCommand compatibility)")
-    return parser.parse_args()
+def _load_config(config_path):
+    import yaml
+    with open(config_path) as f:
+        return yaml.safe_load(f)
+
+
+def _resolve_notebook_name(cli_name, host_arg, config):
+    if cli_name:
+        return cli_name
+    name = _extract_notebook_name_from_host(host_arg)
+    if name:
+        return name
+    return config.get("default_name", "")
+
+
+def _extract_notebook_name_from_host(host):
+    if not host or "." not in host:
+        return None
+    return host.strip().split(".", 1)[1]
 
 
 def _extract_authservice_session(source):
-    """Extract authservice_session value from a multi-cookie string."""
     for part in source.split(";"):
         part = part.strip()
         if part.startswith("authservice_session="):
-            print(
-                "[ssh-proxy] cookie: extracted authservice_session from multi-cookie string",
-                file=sys.stderr, flush=True,
-            )
             return part.split("=", 1)[1]
     return None
 
 
-def _load_cookie(cookie_source=None):
-    """
-    Return the authservice_session cookie value.
+def _load_cookie(config):
+    cookie = config.get("cookie")
+    if cookie:
+        cookie = cookie.strip()
+        if ";" in cookie:
+            value = _extract_authservice_session(cookie)
+            if value:
+                return value
+        if cookie.startswith("authservice_session="):
+            cookie = cookie.split("=", 1)[1]
+        return cookie
 
-    Accepts:
-      - multi-cookie string: ``apt.uid=...; authservice_session=VALUE; dtCookie=...``
-      - key=value pair:     ``authservice_session=VALUE``
-      - file path:          ``~/.kubeflow_cookie``
-      - raw value:          ``VALUE``
-    """
-    source = cookie_source or _COOKIE_SOURCE
-    if not source:
-        return None
+    cookie_file = config.get("cookie_file")
+    if cookie_file:
+        expanded = os.path.expanduser(cookie_file)
+        if os.path.isfile(expanded):
+            with open(expanded) as f:
+                content = f.read().strip()
+            if ";" in content:
+                return _extract_authservice_session(content)
+            if content.startswith("authservice_session="):
+                return content.split("=", 1)[1]
+            return content
+    return None
 
-    # 1. Multi-cookie string (contains ;)
-    if ";" in source:
-        value = _extract_authservice_session(source)
-        if value:
-            return value
-        print(
-            "[ssh-proxy] error: 'authservice_session' not found in cookie string",
-            file=sys.stderr, flush=True,
-        )
+
+def _build_url(config, notebook_name):
+    url_template = config.get("url_template", "")
+    if not url_template:
+        print("[ssh-proxy] error: url_template is not set in config", file=sys.stderr, flush=True)
         sys.exit(1)
 
-    # 2. key=value pair
-    if source.startswith("authservice_session="):
-        print(
-            "[ssh-proxy] cookie: extracted authservice_session from key=value pair",
-            file=sys.stderr, flush=True,
-        )
-        return source.split("=", 1)[1]
+    url = url_template.replace("{name}", notebook_name)
 
-    # 3. File path
-    expanded = os.path.expanduser(source)
-    if os.path.isfile(expanded):
-        print(
-            f"[ssh-proxy] cookie: read from file {expanded}",
-            file=sys.stderr, flush=True,
-        )
-        with open(expanded, "r") as f:
-            content = f.read().strip()
-        # File content may be a multi-cookie string itself
-        if ";" in content:
-            return _extract_authservice_session(content)
-        if content.startswith("authservice_session="):
-            return content.split("=", 1)[1]
-        return content
-
-    # 4. Raw value
-    print(
-        "[ssh-proxy] cookie: using raw value",
-        file=sys.stderr, flush=True,
-    )
-    return source
-
-
-def _build_wss_url(env_url=None):
-    """Convert URL to a WebSocket URL."""
-    url = env_url or _NOTEBOOK_URL
-    if not url:
-        raise RuntimeError("KUBEFLOW_NOTEBOOK_URL is not set")
-
-    # If already a WebSocket URL, just append query param
-    if url.startswith(("ws://", "wss://")):
-        if not url.endswith("/"):
-            url = url + "/"
-        url = url + "?ssh=true"
-        return url
-
-    # Convert HTTP(S) to WS(S)
     if url.startswith("https://"):
         url = "wss://" + url[8:]
     elif url.startswith("http://"):
@@ -122,13 +98,12 @@ def _build_wss_url(env_url=None):
         url = "wss://" + url
 
     if not url.endswith("/"):
-        url = url + "/"
-    url = url + "?ssh=true"
+        url += "/"
+    url += "?ssh=true"
     return url
 
 
 async def stdin_to_ws(ws, force_exit=False):
-    """Read from stdin (fd 0) and send as binary WebSocket frames."""
     loop = asyncio.get_running_loop()
     try:
         while True:
@@ -138,13 +113,11 @@ async def stdin_to_ws(ws, force_exit=False):
             await ws.send(data)
     except (asyncio.CancelledError, Exception):
         pass
-
     if force_exit:
         await ws.close()
 
 
 async def ws_to_stdout(ws):
-    """Receive binary WebSocket frames and write to stdout."""
     try:
         while True:
             data = await ws.recv()
@@ -158,24 +131,37 @@ async def ws_to_stdout(ws):
 
 async def main():
     stop = asyncio.Event()
-
     loop = asyncio.get_running_loop()
     for sig in (signal.SIGINT, signal.SIGTERM):
         loop.add_signal_handler(sig, stop.set)
 
-    args = _parse_args()
-    url = _build_wss_url(args.url)
-    cookie = _load_cookie(args.cookie)
+    parser = argparse.ArgumentParser(description="SSH WebSocket proxy client")
+    parser.add_argument("-n", "--notebook-name", help="Notebook name (overrides default_name in config)")
+    parser.add_argument("args", nargs="*", help=argparse.SUPPRESS)
+    parsed = parser.parse_args()
+
+    config_path = _find_config()
+    if not config_path:
+        print("[ssh-proxy] error: config.yaml not found next to the script", file=sys.stderr, flush=True)
+        sys.exit(1)
+
+    config = _load_config(config_path)
+
+    host_arg = parsed.args[0] if parsed.args else None
+    notebook_name = _resolve_notebook_name(parsed.notebook_name, host_arg, config)
+    if not notebook_name:
+        print("[ssh-proxy] error: no notebook name provided and no default_name in config", file=sys.stderr, flush=True)
+        sys.exit(1)
+
+    url = _build_url(config, notebook_name)
+    cookie = _load_cookie(config)
 
     extra_headers = None
     if cookie:
         extra_headers = {"Cookie": f"authservice_session={cookie}"}
         print(f"[ssh-proxy] Connecting to {url}", file=sys.stderr, flush=True)
     else:
-        print(
-            f"[ssh-proxy] Connecting to {url} (no auth cookie)",
-            file=sys.stderr, flush=True,
-        )
+        print(f"[ssh-proxy] Connecting to {url} (no auth cookie)", file=sys.stderr, flush=True)
 
     try:
         async with websockets.connect(
@@ -185,10 +171,7 @@ async def main():
             ping_timeout=20,
             max_size=2 ** 20,
         ) as ws:
-            print(
-                "[ssh-proxy] WebSocket connected, starting proxy",
-                file=sys.stderr, flush=True,
-            )
+            print("[ssh-proxy] WebSocket connected, starting proxy", file=sys.stderr, flush=True)
 
             stdin_task = asyncio.create_task(
                 stdin_to_ws(ws, force_exit=os.environ.get("SSH_PROXY_FORCE_EXIT") == "1")

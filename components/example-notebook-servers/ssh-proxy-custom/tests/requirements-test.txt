@@ -1,7 +1,7 @@
+-r ../../ssh-proxy/requirements-client.txt
 pytest>=8.0
 testcontainers>=4.0
 testcontainers[docker]>=4.0
 httpx>=0.27
 requests>=2.31
-websockets
 paramiko>=3.0

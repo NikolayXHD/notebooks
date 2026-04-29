@@ -10,7 +10,9 @@ Usage (pytest):
 
 import os
 import pathlib
+import shutil
 import subprocess
+import sys
 import tempfile
 import time
 
@@ -161,14 +163,21 @@ def run_ssh_test(base_url, command="echo hello", timeout=30):
     """
     import pathlib
 
-    ws_url = base_url.replace("http://", "ws://")
-    proxy_cmd = (
-        f"python3 {CLIENT_SCRIPT} "
-        f"-u '{ws_url}' "
-        f"-c '{AUTH_COOKIE}'"
-    )
+    ws_base = base_url.replace("http://", "ws://")
 
     with tempfile.TemporaryDirectory() as tmpdir:
+        # Prepare proxy script + config in a temp directory
+        proxy_dir = pathlib.Path(tmpdir) / "kubeflow-proxy"
+        proxy_dir.mkdir()
+        shutil.copy(CLIENT_SCRIPT, proxy_dir / "ssh-proxy-client.py")
+        (proxy_dir / "config.yaml").write_text(
+            f"url_template: {ws_base}/{{name}}/\n"
+            f"default_name: ssh-test\n"
+            f"cookie: {AUTH_COOKIE}\n"
+        )
+
+        proxy_cmd = f"{sys.executable} {proxy_dir}/ssh-proxy-client.py"
+
         ssh_dir = pathlib.Path(tmpdir) / ".ssh"
         ssh_dir.mkdir()
         config_path = _create_ssh_config(proxy_cmd, ssh_dir)

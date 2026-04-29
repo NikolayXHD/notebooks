@@ -1,15 +1,54 @@
 # Development/testing targets for ssh-proxy
 
-.PHONY: test-venv test clean
+.PHONY: test-venv test clean setup
 
 TEST_VENV := venv
+SETUP_DIR := $(HOME)/.kubeflow-proxy
 
 test-venv:
 	python3.11 -m venv $(TEST_VENV) && \
-	$(TEST_VENV)/bin/pip install --quiet pytest websockets testcontainers httpx requests paramiko
+	$(TEST_VENV)/bin/pip install --quiet -r tests/requirements-test.txt
 
 test: test-venv
 	$(TEST_VENV)/bin/pytest tests/ -v
 
 clean:
 	rm -rf $(TEST_VENV)
+
+setup:
+	@echo "=== Setting up kubeflow SSH proxy ==="
+	@mkdir -p $(SETUP_DIR)
+	@python3 -m venv $(SETUP_DIR)/venv
+	@$(SETUP_DIR)/venv/bin/pip install --quiet -r requirements-client.txt
+	@cp ssh-proxy-client.py $(SETUP_DIR)/ssh-proxy-client.py
+	@chmod +x $(SETUP_DIR)/ssh-proxy-client.py
+	@if [ ! -f $(SETUP_DIR)/config.yaml ]; then \
+		cp config.yaml.template $(SETUP_DIR)/config.yaml; \
+		echo "Created $(SETUP_DIR)/config.yaml"; \
+	else \
+		echo "config.yaml already exists, not overwriting"; \
+	fi
+	@printf '%s\n' \
+		'#!/bin/bash' \
+		'DIR="$$(cd "$$(dirname "$$0")" && pwd)"' \
+		'exec "$$DIR/venv/bin/python3" "$$DIR/ssh-proxy-client.py" "$$@"' \
+		> $(SETUP_DIR)/run \
+		&& chmod +x $(SETUP_DIR)/run
+	@echo ""
+	@echo "=== Setup complete ==="
+	@echo ""
+	@echo "1. Edit $(SETUP_DIR)/config.yaml with your notebook URL and auth cookie"
+	@echo ""
+	@echo "2. Add this to ~/.ssh/config:"
+	@echo ""
+	@echo "   Host kubeflow.*"
+	@echo "       User jovyan"
+	@echo "       ProxyCommand $(SETUP_DIR)/run %n"
+	@echo "       StrictHostKeyChecking no"
+	@echo "       UserKnownHostsFile /dev/null"
+	@echo ""
+	@echo "3. Connect:"
+	@echo "     ssh kubeflow.my-server       # my-server — имя блокнота из config"
+	@echo "     ssh kubeflow.gpu-2           # gpu-2 — другой блокнот"
+	@echo ""
+	@echo "4. Update cookie: edit cookie: line in $(SETUP_DIR)/config.yaml"

@@ -1,0 +1,15 @@
+# Development/testing targets for ssh-proxy-custom
+
+.PHONY: test-venv test clean
+
+TEST_VENV := venv
+
+test-venv:
+	python3.11 -m venv $(TEST_VENV) && \
+	$(TEST_VENV)/bin/pip install --quiet -r tests/requirements-test.txt
+
+test: test-venv
+	$(TEST_VENV)/bin/pytest tests/ -v
+
+clean:
+	rm -rf $(TEST_VENV)

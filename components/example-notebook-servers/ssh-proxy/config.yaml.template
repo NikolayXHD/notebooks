@@ -1,0 +1,6 @@
+url_template: "https://kubeflow.corp.com/notebook/team-ns/user123/{name}/"
+default_name: "my-server"
+cookie: "authservice_session=..."
+
+# Альтернативно — читать куку из файла (например, ~/.kubeflow_cookie):
+# cookie_file: "~/.kubeflow_cookie"
