@@ -11,7 +11,7 @@ USER root
 
 # install - deadsnakes PPA for latest Python 3.11, openssh-server, generate host keys, create venv
 RUN export DEBIAN_FRONTEND=noninteractive \
- && echo 'deb [trusted=yes] http://ppa.launchpad.net/deadsnakes/ppa/ubuntu jammy main' > /etc/apt/sources.list.d/deadsnakes.list \
+ && echo 'deb [trusted=yes] http://ppa.launchpad.net/deadsnakes/ppa/ubuntu noble main' > /etc/apt/sources.list.d/deadsnakes.list \
  && apt-get -yq update \
  && apt-get -yq install --no-install-recommends \
     openssh-server \

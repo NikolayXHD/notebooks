@@ -1,12 +1,15 @@
 # Development/testing targets for ssh-proxy
 
-.PHONY: test-venv test clean setup
+.PHONY: test-build test-venv test clean setup
 
 TEST_VENV := venv
 SETUP_DIR := $(HOME)/.kubeflow-proxy
 
+test-build:
+	REGISTRY=local TAG=test $(MAKE) docker-build-dep
+
 test-venv:
-	python3.11 -m venv $(TEST_VENV) && \
+	python3 -m venv $(TEST_VENV) && \
 	$(TEST_VENV)/bin/pip install --quiet -r tests/requirements-test.txt
 
 test: test-venv

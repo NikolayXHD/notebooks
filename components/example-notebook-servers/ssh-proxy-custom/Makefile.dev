@@ -1,11 +1,14 @@
 # Development/testing targets for ssh-proxy-custom
 
-.PHONY: test-venv test clean
+.PHONY: test-build test-venv test clean
 
 TEST_VENV := venv
 
+test-build:
+	REGISTRY=local TAG=test $(MAKE) docker-build-dep
+
 test-venv:
-	python3.11 -m venv $(TEST_VENV) && \
+	python3 -m venv $(TEST_VENV) && \
 	$(TEST_VENV)/bin/pip install --quiet -r tests/requirements-test.txt
 
 test: test-venv
