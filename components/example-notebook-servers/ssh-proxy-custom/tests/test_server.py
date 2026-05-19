@@ -137,7 +137,7 @@ def test_poetry_installed(container):
 def test_poetry_venv_creation(container):
     exit_code, output = container.exec(
         ["sh", "-c",
-         "cd /tmp && rm -rf test-pkg && mkdir test-pkg && cd test-pkg && cat > pyproject.toml << 'EOF' && poetry lock && poetry run python --version\n"
+         "cd /tmp && rm -rf test-pkg && mkdir test-pkg && cd test-pkg && cat > pyproject.toml << 'EOF' && poetry env use python3.11 && poetry lock && poetry run python --version\n"
          "[tool.poetry]\n"
          "name = \"test-pkg\"\n"
          "version = \"0.1.0\"\n"
@@ -154,6 +154,21 @@ def test_poetry_venv_creation(container):
         ]
     )
     assert exit_code == 0, f"poetry failed: {output}"
+    assert b"3.11" in output
+
+
+def test_uv_installed(container):
+    exit_code, output = container.exec("uv --version")
+    assert exit_code == 0
+
+
+def test_uv_venv_creation(container):
+    exit_code, output = container.exec(
+        ["sh", "-c",
+         "cd /tmp && rm -rf test-uv-venv && uv venv --python 3.11 test-uv-venv && "
+         "test-uv-venv/bin/python --version"]
+    )
+    assert exit_code == 0, f"uv venv failed: {output}"
     assert b"3.11" in output
 
 

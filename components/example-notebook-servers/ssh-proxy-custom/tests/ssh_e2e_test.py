@@ -224,6 +224,10 @@ def test_ssh_e2e():
         assert returncode == 0
         print("   ✓ poetry installed")
 
+        returncode, stdout, stderr = run_ssh_test(base_url, "uv --version")
+        assert returncode == 0
+        print("   ✓ uv installed")
+
         print("\n" + "=" * 60)
         print("E2E test PASSED!")
         print("=" * 60)

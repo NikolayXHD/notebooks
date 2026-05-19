@@ -34,6 +34,10 @@ RUN wget https://github.com/jesseduffield/lazygit/releases/download/v0.54.2/lazy
     tar xvf lazygit_0.54.2_linux_x86_64.tar.gz -C /usr/local/bin --wildcards lazygit && \
     rm lazygit_0.54.2_linux_x86_64.tar.gz
 
+RUN curl -Lso /tmp/uv.tar.gz https://github.com/astral-sh/uv/releases/download/0.6.15/uv-x86_64-unknown-linux-gnu.tar.gz && \
+    tar xzf /tmp/uv.tar.gz -C /usr/local/bin --strip-components=1 && \
+    rm /tmp/uv.tar.gz
+
 # direnv + PermitUserEnvironment for transparent SSH env
 RUN echo "PermitUserEnvironment yes" >> /etc/ssh/sshd_config && \
     mkdir -p ${HOME}/.ssh ${HOME}/.config/direnv && \
