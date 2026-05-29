@@ -25,7 +25,7 @@ set_pip_index_url() {
 }
 
 install_common_packages() {
-    apt -y update && apt-get install -y python3-pip p7zip-full p7zip-rar build-essential man-db mc htop nvtop
+    apt -y update && apt-get install -y python3-pip python-is-python3 rsync p7zip-full p7zip-rar build-essential man-db mc htop nvtop
     wget -q https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
     dpkg -i cuda-keyring_1.1-1_all.deb
     apt-get update

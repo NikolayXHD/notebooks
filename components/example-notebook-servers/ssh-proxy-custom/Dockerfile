@@ -18,7 +18,7 @@ USER root
 COPY common.sh .
 RUN chmod +x common.sh && ./common.sh && rm common.sh
 
-RUN apt -y update && apt -y install fish micro python-is-python3 sudo direnv && apt clean
+RUN apt -y update && apt -y install fish micro sudo direnv && apt clean
 
 # passwordless su (jovyan → root) via PAM
 RUN awk -v nb_user="$NB_USER" 'match($0, /auth[[:space:]]+sufficient[[:space:]]+pam_rootok\.so/) {print $0 ORS "auth       sufficient pam_succeed_if.so use_uid user = " nb_user; next} {print}' /etc/pam.d/su > /tmp/su && mv /tmp/su /etc/pam.d/su
