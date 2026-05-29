@@ -34,12 +34,6 @@ install_common_packages() {
     apt clean
 }
 
-install_common_python_packages() {
-    pip install --break-system-packages --no-cache-dir \
-        poetry==1.8.5
-}
-
 set_ubuntu_mirror
 install_common_packages
-install_common_python_packages
 set_pip_index_url
