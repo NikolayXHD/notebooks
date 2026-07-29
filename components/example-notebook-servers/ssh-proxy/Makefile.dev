@@ -9,8 +9,8 @@ test-build:
 	REGISTRY=local TAG=test $(MAKE) docker-build-dep
 
 test-venv:
-	python3 -m venv $(TEST_VENV) && \
-	$(TEST_VENV)/bin/pip install --quiet -r tests/requirements-test.txt
+	uv venv $(TEST_VENV) && \
+	VIRTUAL_ENV=$(TEST_VENV) uv pip install --quiet -r tests/requirements-test.txt
 
 test: test-venv
 	$(TEST_VENV)/bin/pytest tests/ -v
@@ -21,8 +21,8 @@ clean:
 setup:
 	@echo "=== Setting up kubeflow SSH proxy ==="
 	@mkdir -p $(SETUP_DIR)
-	@python3 -m venv $(SETUP_DIR)/venv
-	@$(SETUP_DIR)/venv/bin/pip install --quiet -r requirements-client.txt
+	@uv venv $(SETUP_DIR)/venv
+	@VIRTUAL_ENV=$(SETUP_DIR)/venv uv pip install --quiet -r requirements-client.txt
 	@cp ssh-proxy-client.py $(SETUP_DIR)/ssh-proxy-client.py
 	@chmod +x $(SETUP_DIR)/ssh-proxy-client.py
 	@if [ ! -f $(SETUP_DIR)/config.yaml ]; then \

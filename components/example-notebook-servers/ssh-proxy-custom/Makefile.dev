@@ -8,8 +8,8 @@ test-build:
 	REGISTRY=local TAG=test $(MAKE) docker-build-dep
 
 test-venv:
-	python3 -m venv $(TEST_VENV) && \
-	$(TEST_VENV)/bin/pip install --quiet -r tests/requirements-test.txt
+	uv venv $(TEST_VENV) && \
+	VIRTUAL_ENV=$(TEST_VENV) uv pip install --quiet -r tests/requirements-test.txt
 
 test: test-venv
 	$(TEST_VENV)/bin/pytest tests/ -v
